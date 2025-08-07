@@ -164,7 +164,7 @@ Helpful links that you can use with your project:
 
 ## Licensing
 
-![Licence](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)
+![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)
 ![cc-by-nc-sa-image](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)
 
 "The code in this project is licensed under Creative Commons Attribution-NonCommercial-ShareAlike (CC BY-NC-SA) License."
