@@ -4,7 +4,7 @@
   <img src="https://logos-world.net/wp-content/uploads/2021/10/Python-Symbol.png" width="600" height="300" alt="Python Logo">
 </p>
 
-> A secure, menu-driven User Credentials Manager that handles password hashing, encryption, decryption, and periodic key rotation with file-based persistence for credentials and encryption keys.
+> A secure, menu-driven User Credentials Manager that handles salted password hashing, encryption, decryption, and periodic key rotation with file-based persistence for credentials and encryption keys.
 
 User Credentials Manager is a secure, menu-driven system for managing user credentials. It uses strong password hashing and encryption to protect sensitive data, with periodic key rotation and automatic re-encryption for enhanced security. Credentials, encryption keys, and timestamps are stored persistently in files. The system allows users to easily add, authenticate, update, and delete accounts, while ensuring data integrity through robust error handling.
 
@@ -75,7 +75,8 @@ This project repo has the following:
     - Encrypts sensitive data (e.g., usernames, passwords) using **Fernet encryption**.
     - Decrypts data when needed to authenticate or update user credentials.
   - **Password Hashing**:
-    - Uses **bcrypt** to hash and verify user passwords securely.    
+    - Uses **bcrypt** to **salt and hash** user passwords securely, ensuring each password has a unique salt.
+    - Verifies the user's password by comparing the hashed password with the stored one.
   - **Persistent Storage**:
     - Stores encrypted user credentials in a **JSON file** (`credentials.json`).
     - Saves the encryption key in a separate **key file** (`encryption.key`).
@@ -83,12 +84,12 @@ This project repo has the following:
 - User Operations:
   - **Add User**:
     - Allows users to be added to the system with a username and password.
-    - Passwords are hashed and stored securely.
+    - Passwords are **hashed with salt** and stored securely.
   - **Authenticate User**:
-    - Verifies user login by comparing the entered password with the hashed password in storage.    
+    - Verifies user login by comparing the entered password with the **hashed password** in storage.    
   - **Update User Password**:
     - Allows users to change their password by providing the current username and new password.
-    - The new password is hashed and updated in the storage.
+    - The new password is **hashed with salt** and updated in the storage.
   - **Update Username**:
     - Allows users to change their username.
     - Ensures that the new username is not already in use.    
@@ -106,12 +107,12 @@ This project repo has the following:
       - All stored data is decrypted with the old key and re-encrypted with the new key.
       - The new key is saved and used for future operations.
   - **Timestamp for Key Rotation**:
-    - Stores the timestamp of the last key rotation in a **separate timestamp file** (`key_timestamp.json`).
+    - Stores the timestamp of the last key rotation in a separate **timestamp file** (`key_timestamp.json`).
     - Compares the current time with the timestamp to determine if key rotation is necessary.
 
 - File-based Persistence:
   - **Credentials Storage**:
-    - Stores encrypted usernames and hashed passwords in a **JSON file** (`credentials.json`).
+    - Stores encrypted usernames and **salted, hashed passwords** in a JSON file (`credentials.json`).
     - Each username and password is encrypted before being saved, ensuring security.
   - **Key Storage**:
     - The encryption key is saved in a file (`encryption.key`), so it can be reused across program executions.
@@ -137,7 +138,7 @@ This project repo has the following:
 
 - Security Features:
   - **Strong Encryption and Hashing**:
-    - Uses **Fernet** for encryption and **bcrypt** for password hashing, both of which are considered secure and standard for modern applications.  
+    - Uses **Fernet** for encryption and **bcrypt** for **salted password hashing**, both of which are considered secure and standard for modern applications.  
   - **Data Integrity**:
     - Ensures that encrypted data is stored securely and can only be accessed by decrypting with the correct encryption key.
   

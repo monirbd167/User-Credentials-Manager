@@ -70,11 +70,13 @@ class UserCredentialsManager:
         return self.fernet.decrypt(encrypted_data.encode()).decode()
 
     def hash_password(self, password):
-        """Hash a password using bcrypt."""
-        return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        """Hash a password using bcrypt with a salt."""
+        # bcrypt automatically salts the password for you
+        hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+        return hashed_password.decode()
 
     def verify_password(self, hashed_password, password):
-        """Verify a hashed password."""
+        """Verify a hashed password using bcrypt."""
         return bcrypt.checkpw(password.encode(), hashed_password.encode())
 
     def add_user(self, username, password):
